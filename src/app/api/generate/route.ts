@@ -4,10 +4,17 @@ import { db } from '@/lib/db';
 import { campaigns, products, generations } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
-import { buildGenerationPrompt, type Tone } from '@/lib/ai/promptBuilder';
+import { buildGenerationPrompt, buildCampaignHeroImagePrompt, type Tone } from '@/lib/ai/promptBuilder';
 import { GenerationOutputSchema, getFallbackGeneration } from '@/lib/ai/responseValidator';
+import { v2 as cloudinary } from 'cloudinary';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(req: NextRequest) {
     try {
@@ -99,6 +106,7 @@ export async function POST(req: NextRequest) {
                     captionInstagram: data.captions.instagram,
                     captionFacebook: data.captions.facebook,
                     captionTiktok: data.captions.tiktok,
+                    captionWhatsapp: data.captions.whatsapp,
                     hashtags: data.hashtags,
                     estimatedPrice: data.estimatedPrice,
                     priceConfidence: data.priceConfidence,
@@ -117,9 +125,40 @@ export async function POST(req: NextRequest) {
             })
         );
 
-        // Mark campaign done
+        // Generate Campaign Hero Image
+        const heroImagePrompt = buildCampaignHeroImagePrompt(campaign.theme, campaign.tone as Tone);
+        let heroImageUrl = null;
+
+        try {
+            const imageResponse = await openai.images.generate({
+                model: 'dall-e-3',
+                prompt: heroImagePrompt,
+                n: 1,
+                size: '1024x1024',
+                quality: 'hd',
+                style: campaign.tone === 'Trendy' ? 'vivid' : 'natural',
+            });
+
+            const generatedUrl = imageResponse.data?.[0]?.url;
+            if (generatedUrl) {
+                const uploaded = await cloudinary.uploader.upload(generatedUrl, {
+                    folder: `jewelry-saas/campaigns/${campaign.id}`,
+                    transformation: [{ quality: 'auto', fetch_format: 'auto' }],
+                });
+                heroImageUrl = uploaded.secure_url;
+            }
+        } catch (heroErr) {
+            console.error('[GENERATE HERO IMAGE ERROR]', heroErr);
+            // Non-fatal, we continue to save the campaign
+        }
+
+        // Mark campaign done and save hero image
         await db.update(campaigns)
-            .set({ status: 'done' })
+            .set({
+                status: 'done',
+                heroImageUrl,
+                heroImagePrompt
+            })
             .where(eq(campaigns.id, campaignId));
 
         return NextResponse.json({ success: true, generations: savedGenerations });

@@ -18,6 +18,8 @@ export const campaigns = pgTable('campaigns', {
     theme: text('theme').notNull().default('jewelry'),
     tone: text('tone').notNull().default('Luxury'), // Luxury | Trendy | Minimal | Bold
     status: text('status').notNull().default('draft'), // draft | generating | done | error
+    heroImageUrl: text('hero_image_url'),
+    heroImagePrompt: text('hero_image_prompt'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -41,6 +43,7 @@ export const generations = pgTable('generations', {
     captionInstagram: text('caption_instagram'),
     captionFacebook: text('caption_facebook'),
     captionTiktok: text('caption_tiktok'),
+    captionWhatsapp: text('caption_whatsapp'),
     hashtags: jsonb('hashtags').$type<string[]>().default([]),
     estimatedPrice: text('estimated_price'),
     priceConfidence: text('price_confidence'), // 'high' | 'medium' | 'low'

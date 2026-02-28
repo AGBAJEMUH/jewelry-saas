@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
             captionInstagram: aiOutput.captions.instagram,
             captionFacebook: aiOutput.captions.facebook,
             captionTiktok: aiOutput.captions.tiktok,
+            captionWhatsapp: aiOutput.captions.whatsapp,
             hashtags: aiOutput.hashtags,
             estimatedPrice: aiOutput.estimatedPrice,
             priceConfidence: aiOutput.priceConfidence,

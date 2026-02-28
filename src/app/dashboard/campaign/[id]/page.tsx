@@ -10,6 +10,7 @@ interface Generation {
     captionInstagram: string | null;
     captionFacebook: string | null;
     captionTiktok: string | null;
+    captionWhatsapp: string | null;
     hashtags: string[] | null;
     estimatedPrice: string | null;
     promoImageUrl: string | null;
@@ -29,6 +30,8 @@ interface Campaign {
     title: string;
     theme: string;
     tone: string;
+    heroImageUrl: string | null;
+    heroImagePrompt: string | null;
     createdAt: string;
 }
 
@@ -38,7 +41,7 @@ export default function CampaignResultsPage() {
 
     const [data, setData] = useState<{ campaign: Campaign; products: Product[] } | null>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTabs, setActiveTabs] = useState<Record<string, 'instagram' | 'facebook' | 'tiktok'>>({});
+    const [activeTabs, setActiveTabs] = useState<Record<string, 'instagram' | 'facebook' | 'tiktok' | 'whatsapp'>>({});
     const [generatingImages, setGeneratingImages] = useState<Record<string, boolean>>({});
     const [regeneratingText, setRegeneratingText] = useState<Record<string, boolean>>({});
 
@@ -66,7 +69,7 @@ export default function CampaignResultsPage() {
         }
     }
 
-    const setTab = (productId: string, tab: 'instagram' | 'facebook' | 'tiktok') => {
+    const setTab = (productId: string, tab: 'instagram' | 'facebook' | 'tiktok' | 'whatsapp') => {
         setActiveTabs(prev => ({ ...prev, [productId]: tab }));
     };
 
@@ -120,9 +123,31 @@ export default function CampaignResultsPage() {
         }
     };
 
-    const handleDownloadCopy = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast.success('Copied to clipboard!');
+    const handleShare = async (text: string, platform: 'instagram' | 'facebook' | 'tiktok' | 'whatsapp') => {
+        const shareData = {
+            title: 'Jewelry Campaign',
+            text: text,
+        };
+
+        if (platform === 'whatsapp') {
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            return;
+        }
+
+        if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+            try {
+                await navigator.share(shareData);
+                toast.success('Shared successfully!');
+            } catch (err) {
+                if ((err as Error).name !== 'AbortError') {
+                    navigator.clipboard.writeText(text);
+                    toast.success('Copied to clipboard!');
+                }
+            }
+        } else {
+            navigator.clipboard.writeText(text);
+            toast.success('Copied to clipboard!');
+        }
     };
 
     if (loading || !data) {
@@ -152,11 +177,31 @@ export default function CampaignResultsPage() {
                             <span>{products.length} Products</span>
                         </div>
                     </div>
-                    <button className="btn btn-ghost" onClick={() => toast.success('Downloaded ZIP file!')}>
-                        <Download size={18} /> Export All
+                    <button className="btn btn-ghost" onClick={() => toast.success('Exporting redirected to sharing options below!')}>
+                        <Download size={18} /> Export
                     </button>
                 </div>
             </div>
+
+            {/* Campaign Hero Image */}
+            {campaign.heroImageUrl && (
+                <div className="mb-12 card overflow-hidden border-none shadow-xl bg-[var(--charcoal)] text-white">
+                    <div className="relative aspect-[21/9] w-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={campaign.heroImageUrl}
+                            alt="Campaign Poster"
+                            className="w-full h-full object-cover opacity-80"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-8">
+                            <h2 className="font-serif text-3xl mb-2 text-white">Campaign Promotional Poster</h2>
+                            <p className="text-secondary-300 max-w-2xl text-sm italic">
+                                "This AI-designed poster reflects the overall {campaign.tone} tone and {campaign.theme} theme of your entire collection."
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Product List */}
             <div className="grid gap-8">
@@ -171,6 +216,7 @@ export default function CampaignResultsPage() {
                     if (currentTab === 'instagram') currentCaption = latestGen.captionInstagram || '';
                     if (currentTab === 'facebook') currentCaption = latestGen.captionFacebook || '';
                     if (currentTab === 'tiktok') currentCaption = latestGen.captionTiktok || '';
+                    if (currentTab === 'whatsapp') currentCaption = latestGen.captionWhatsapp || '';
 
                     return (
                         <div key={product.id} className="card flex flex-col md:flex-row">
@@ -217,6 +263,9 @@ export default function CampaignResultsPage() {
                                         <button className={`tab ${currentTab === 'tiktok' ? 'active' : ''}`} onClick={() => setTab(product.id, 'tiktok')}>
                                             TikTok
                                         </button>
+                                        <button className={`tab ${currentTab === 'whatsapp' ? 'active' : ''}`} onClick={() => setTab(product.id, 'whatsapp')}>
+                                            WhatsApp
+                                        </button>
                                     </div>
 
                                     {/* Textarea */}
@@ -236,9 +285,17 @@ export default function CampaignResultsPage() {
                                         ))}
                                     </div>
 
-                                    <button className="btn btn-primary btn-sm" onClick={() => handleDownloadCopy(`${currentCaption}\n\n${(latestGen.hashtags || []).map(t => `#${t}`).join(' ')}`)}>
-                                        Copy Text
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button className="btn btn-primary btn-sm" onClick={() => handleShare(`${currentCaption}\n\n${(latestGen.hashtags || []).map(t => `#${t}`).join(' ')}`, currentTab)}>
+                                            {currentTab === 'whatsapp' ? 'Post to WhatsApp' : 'Share Now'}
+                                        </button>
+                                        <button className="btn btn-ghost btn-sm" onClick={() => {
+                                            navigator.clipboard.writeText(`${currentCaption}\n\n${(latestGen.hashtags || []).map(t => `#${t}`).join(' ')}`);
+                                            toast.success('Copied to clipboard!');
+                                        }}>
+                                            Copy
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Right side: AI Promo Image Gen */}
