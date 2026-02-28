@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
             style: campaign.tone === 'Trendy' ? 'vivid' : 'natural',
         });
 
-        const generatedImageUrl = imageResponse.data[0].url;
+        const generatedImageUrl = imageResponse.data?.[0]?.url;
         if (!generatedImageUrl) {
             return NextResponse.json({ error: 'Image generation failed' }, { status: 500 });
         }
