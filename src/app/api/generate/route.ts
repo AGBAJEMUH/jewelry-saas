@@ -5,7 +5,7 @@ import { campaigns, products, generations } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import OpenAI from 'openai';
 import { buildGenerationPrompt, buildCampaignHeroImagePrompt, type Tone } from '@/lib/ai/promptBuilder';
-import { GenerationOutputSchema, getFallbackGeneration } from '@/lib/ai/responseValidator';
+import { GenerationOutputSchema, getFallbackGeneration, type GenerationOutput } from '@/lib/ai/responseValidator';
 import { v2 as cloudinary } from 'cloudinary';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
             image_url: { url: p.imageUrl, detail: 'high' as const },
         }));
 
-        let aiOutput;
+        let aiOutput: GenerationOutput;
         try {
             const response = await openai.chat.completions.create({
                 model: 'gpt-4o',
@@ -93,6 +93,12 @@ export async function POST(req: NextRequest) {
             // Use fallbacks
             aiOutput = {
                 products: productList.map(p => ({ ...getFallbackGeneration(p.name ?? undefined) })),
+                masterCopy: {
+                    captions: {
+                        instagram: '', facebook: '', tiktok: '', whatsapp: ''
+                    },
+                    hashtags: []
+                }
             };
         }
 
@@ -157,7 +163,12 @@ export async function POST(req: NextRequest) {
             .set({
                 status: 'done',
                 heroImageUrl,
-                heroImagePrompt
+                heroImagePrompt,
+                masterCaptionInstagram: aiOutput.masterCopy.captions.instagram,
+                masterCaptionFacebook: aiOutput.masterCopy.captions.facebook,
+                masterCaptionTiktok: aiOutput.masterCopy.captions.tiktok,
+                masterCaptionWhatsapp: aiOutput.masterCopy.captions.whatsapp,
+                masterHashtags: aiOutput.masterCopy.hashtags,
             })
             .where(eq(campaigns.id, campaignId));
 

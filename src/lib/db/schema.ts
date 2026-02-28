@@ -20,6 +20,11 @@ export const campaigns = pgTable('campaigns', {
     status: text('status').notNull().default('draft'), // draft | generating | done | error
     heroImageUrl: text('hero_image_url'),
     heroImagePrompt: text('hero_image_prompt'),
+    masterCaptionInstagram: text('master_caption_instagram'),
+    masterCaptionFacebook: text('master_caption_facebook'),
+    masterCaptionTiktok: text('master_caption_tiktok'),
+    masterCaptionWhatsapp: text('master_caption_whatsapp'),
+    masterHashtags: jsonb('master_hashtags').$type<string[]>().default([]),
     createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

@@ -32,6 +32,11 @@ interface Campaign {
     tone: string;
     heroImageUrl: string | null;
     heroImagePrompt: string | null;
+    masterCaptionInstagram: string | null;
+    masterCaptionFacebook: string | null;
+    masterCaptionTiktok: string | null;
+    masterCaptionWhatsapp: string | null;
+    masterHashtags: string[] | null;
     createdAt: string;
 }
 
@@ -59,6 +64,7 @@ export default function CampaignResultsPage() {
 
             // Init tabs
             const tabs: any = {};
+            tabs['master'] = 'instagram';
             body.products.forEach((p: Product) => { tabs[p.id] = 'instagram'; });
             setActiveTabs(tabs);
         } catch {
@@ -134,19 +140,35 @@ export default function CampaignResultsPage() {
             return;
         }
 
+        // For others, copy to clipboard as a fallback/companion to opening the app
+        navigator.clipboard.writeText(text);
+        toast.success('Caption copied! Open the app to paste.');
+
         if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
             try {
                 await navigator.share(shareData);
-                toast.success('Shared successfully!');
             } catch (err) {
-                if ((err as Error).name !== 'AbortError') {
-                    navigator.clipboard.writeText(text);
-                    toast.success('Copied to clipboard!');
-                }
+                // Ignore aborts
             }
-        } else {
-            navigator.clipboard.writeText(text);
-            toast.success('Copied to clipboard!');
+        }
+    };
+
+    const handleDownload = async (imageUrl: string, filename: string) => {
+        try {
+            const response = await fetch(imageUrl);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            toast.success('Download started!');
+        } catch (err) {
+            window.open(imageUrl, '_blank');
+            toast.error('Direct download failed, opening in new tab');
         }
     };
 
@@ -167,41 +189,105 @@ export default function CampaignResultsPage() {
                 <button onClick={() => router.push('/dashboard')} className="btn btn-ghost btn-sm mb-4" style={{ padding: '4px 8px' }}>
                     <ArrowLeft size={16} /> Back
                 </button>
-                <div className="flex justify-between items-end">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                     <div>
-                        <h1 className="font-serif" style={{ fontSize: '2.2rem', marginBottom: 8 }}>{campaign.title}</h1>
-                        <div className="flex gap-2 items-center text-sm text-secondary">
+                        <h1 className="font-serif text-3xl md:text-4xl" style={{ marginBottom: 8 }}>{campaign.title}</h1>
+                        <div className="flex flex-wrap gap-2 items-center text-sm text-secondary">
                             <span className="badge badge-gold">{campaign.tone} Tone</span>
                             <span className="badge badge-charcoal">{campaign.theme}</span>
                             <span>•</span>
                             <span>{products.length} Products</span>
                         </div>
                     </div>
-                    <button className="btn btn-ghost" onClick={() => toast.success('Exporting redirected to sharing options below!')}>
-                        <Download size={18} /> Export
-                    </button>
                 </div>
             </div>
 
-            {/* Campaign Hero Image */}
+            {/* Master Campaign Poster Card */}
             {campaign.heroImageUrl && (
-                <div className="mb-12 card overflow-hidden border-none shadow-xl bg-[var(--charcoal)] text-white">
-                    <div className="relative aspect-[21/9] w-full">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                            src={campaign.heroImageUrl}
-                            alt="Campaign Poster"
-                            className="w-full h-full object-cover opacity-80"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-8">
-                            <h2 className="font-serif text-3xl mb-2 text-white">Campaign Promotional Poster</h2>
-                            <p className="text-secondary-300 max-w-2xl text-sm italic">
-                                "This AI-designed poster reflects the overall {campaign.tone} tone and {campaign.theme} theme of your entire collection."
-                            </p>
+                <div className="mb-12">
+                    <h2 className="font-serif text-2xl mb-4 text-[var(--charcoal)]">Campaign Master Poster</h2>
+                    <div className="card overflow-hidden flex flex-col lg:flex-row shadow-2xl border-2 border-[var(--gold-200)]">
+                        {/* Poster Image */}
+                        <div className="w-full lg:w-1/2 bg-[var(--charcoal)] relative group">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src={campaign.heroImageUrl}
+                                alt="Campaign Poster"
+                                className="w-full h-full object-cover aspect-square sm:aspect-video lg:aspect-square"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button
+                                    onClick={() => handleDownload(campaign.heroImageUrl!, `campaign-${campaign.id}-poster.jpg`)}
+                                    className="btn btn-primary rounded-full"
+                                >
+                                    <Download size={18} className="mr-2" /> Download Poster
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Master Copy */}
+                        <div className="card-body p-6 md:p-10 lg:w-1/2 flex flex-col justify-center">
+                            <div className="mb-6">
+                                <h3 className="font-serif text-2xl border-b-2 border-[var(--gold)] pb-1 inline-block mb-4">Master Campaign Copy</h3>
+                                <p className="text-sm text-secondary italic mb-6">"This AI-generated copy summarizes your entire {campaign.theme} collection in a {campaign.tone} tone."</p>
+
+                                <div className="tabs mb-4 overflow-x-auto whitespace-nowrap scrollbar-hide">
+                                    {['instagram', 'facebook', 'tiktok', 'whatsapp'].map((t: any) => (
+                                        <button
+                                            key={t}
+                                            className={`tab ${activeTabs['master'] === t ? 'active' : ''}`}
+                                            onClick={() => setTab('master', t)}
+                                        >
+                                            <span className="capitalize">{t}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <textarea
+                                    className="form-textarea mb-4 w-full"
+                                    value={
+                                        activeTabs['master'] === 'instagram' ? campaign.masterCaptionInstagram || '' :
+                                            activeTabs['master'] === 'facebook' ? campaign.masterCaptionFacebook || '' :
+                                                activeTabs['master'] === 'tiktok' ? campaign.masterCaptionTiktok || '' :
+                                                    campaign.masterCaptionWhatsapp || ''
+                                    }
+                                    readOnly
+                                    style={{ minHeight: 140, background: 'var(--surface-alt)', border: 'none', fontSize: '0.95rem' }}
+                                />
+
+                                <div className="mb-6 flex flex-wrap gap-2">
+                                    {(campaign.masterHashtags || []).map(t => (
+                                        <span key={t} className="text-xs bg-gray-100 text-gray-600 rounded px-2 py-1 font-mono">#{t}</span>
+                                    ))}
+                                </div>
+
+                                <div className="flex flex-wrap gap-3">
+                                    <button
+                                        className="btn btn-primary flex-1 min-w-[140px]"
+                                        onClick={() => {
+                                            const text = activeTabs['master'] === 'instagram' ? campaign.masterCaptionInstagram :
+                                                activeTabs['master'] === 'facebook' ? campaign.masterCaptionFacebook :
+                                                    activeTabs['master'] === 'tiktok' ? campaign.masterCaptionTiktok :
+                                                        campaign.masterCaptionWhatsapp;
+                                            handleShare(`${text}\n\n${(campaign.masterHashtags || []).map(h => `#${h}`).join(' ')}`, activeTabs['master'] as any);
+                                        }}
+                                    >
+                                        Share Master Card
+                                    </button>
+                                    <button
+                                        className="btn btn-outline"
+                                        onClick={() => handleDownload(campaign.heroImageUrl!, `master-poster.jpg`)}
+                                    >
+                                        <Download size={18} />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
+
+            <h2 className="font-serif text-2xl mb-6 text-[var(--charcoal)]">Individual Product Assets</h2>
 
             {/* Product List */}
             <div className="grid gap-8">
@@ -219,110 +305,110 @@ export default function CampaignResultsPage() {
                     if (currentTab === 'whatsapp') currentCaption = latestGen.captionWhatsapp || '';
 
                     return (
-                        <div key={product.id} className="card flex flex-col md:flex-row">
-                            {/* Image & Main Info split */}
-                            <div style={{ display: 'flex', flexDirection: 'row', minHeight: 0 }}>
-                                {/* Left side: Original Image & Generated Promo Image */}
-                                <div style={{ width: 320, flexShrink: 0, borderRight: '1px solid var(--border)', background: 'var(--surface-alt)', display: 'flex', flexDirection: 'column' }}>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={product.imageUrl} alt="Source" style={{ width: '100%', height: 260, objectFit: 'cover' }} />
-                                    <div className="p-4 bg-white border-t border-[var(--border)]">
-                                        <p className="font-semibold text-lg text-[var(--charcoal)] mb-1">{product.name}</p>
+                        <div key={product.id} className="card overflow-hidden border border-[var(--border)] shadow-sm">
+                            <div className="flex flex-col md:flex-row">
+                                {/* Left side: Original Image & Product Info */}
+                                <div className="w-full md:w-[320px] lg:w-[380px] bg-[var(--surface-alt)] flex flex-col border-b md:border-b-0 md:border-r border-[var(--border)]">
+                                    <div className="relative aspect-square md:aspect-auto md:h-[300px]">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={product.imageUrl} alt="Source" className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="p-6 bg-white flex-1">
+                                        <h3 className="font-serif text-xl text-[var(--charcoal)] mb-2">{product.name}</h3>
                                         {latestGen.estimatedPrice && (
-                                            <p className="text-emerald text-sm font-semibold mb-2">Estimate: {latestGen.estimatedPrice}</p>
+                                            <p className="text-emerald-600 text-sm font-bold mb-3">Est. Value: {latestGen.estimatedPrice}</p>
                                         )}
-                                        <p className="text-secondary text-sm">{product.description}</p>
+                                        <p className="text-secondary text-sm leading-relaxed">{product.description}</p>
                                     </div>
                                 </div>
 
-                                {/* Middle Data: Captions */}
-                                <div className="card-body" style={{ flex: 1, padding: 32 }}>
+                                {/* Middle: Marketing Copy */}
+                                <div className="flex-1 p-6 md:p-8 border-b md:border-b-0 md:border-r border-[var(--border)]">
                                     <div className="flex justify-between items-center mb-6">
-                                        <h2 className="font-serif text-xl border-b-[2px] border-[var(--gold)] pb-1 inline-block">Marketing Copy</h2>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs text-muted font-mono bg-gray-100 px-2 py-1 rounded">Var #{latestGen.variationNumber}</span>
+                                        <h3 className="font-serif text-xl border-b-2 border-[var(--gold)] pb-1">Marketing Copy</h3>
+                                        <button
+                                            onClick={() => handleRegenerateText(product.id)}
+                                            disabled={regeneratingText[product.id]}
+                                            className="btn btn-ghost btn-sm text-[var(--gold-700)] hover:bg-[var(--gold-50)]"
+                                        >
+                                            {regeneratingText[product.id] ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                                            <span className="ml-2 hidden sm:inline">New Variation</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="tabs mb-4 overflow-x-auto whitespace-nowrap scrollbar-hide">
+                                        {['instagram', 'facebook', 'tiktok', 'whatsapp'].map((t: any) => (
                                             <button
-                                                onClick={() => handleRegenerateText(product.id)}
-                                                disabled={regeneratingText[product.id]}
-                                                className="btn btn-ghost btn-sm"
+                                                key={t}
+                                                className={`tab ${currentTab === t ? 'active' : ''}`}
+                                                onClick={() => setTab(product.id, t)}
                                             >
-                                                {regeneratingText[product.id] ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                                                New Variation
+                                                <span className="capitalize">{t}</span>
                                             </button>
-                                        </div>
+                                        ))}
                                     </div>
 
-                                    {/* Tabs */}
-                                    <div className="tabs mb-4">
-                                        <button className={`tab ${currentTab === 'instagram' ? 'active' : ''}`} onClick={() => setTab(product.id, 'instagram')}>
-                                            <Instagram size={16} className="mb-1 inline-block mr-1" /> Instagram
-                                        </button>
-                                        <button className={`tab ${currentTab === 'facebook' ? 'active' : ''}`} onClick={() => setTab(product.id, 'facebook')}>
-                                            <Facebook size={16} className="mb-1 inline-block mr-1" /> Facebook
-                                        </button>
-                                        <button className={`tab ${currentTab === 'tiktok' ? 'active' : ''}`} onClick={() => setTab(product.id, 'tiktok')}>
-                                            TikTok
-                                        </button>
-                                        <button className={`tab ${currentTab === 'whatsapp' ? 'active' : ''}`} onClick={() => setTab(product.id, 'whatsapp')}>
-                                            WhatsApp
-                                        </button>
-                                    </div>
-
-                                    {/* Textarea */}
                                     <textarea
-                                        className="form-textarea mb-4"
+                                        className="form-textarea w-full mb-4"
                                         value={currentCaption}
                                         readOnly
-                                        style={{ minHeight: 160, background: 'var(--surface-alt)', border: 'none' }}
+                                        style={{ minHeight: 140, background: 'var(--surface-alt)', border: 'none' }}
                                     />
 
-                                    {/* Hashtags */}
-                                    <div className="mb-6">
+                                    <div className="flex flex-wrap gap-2 mb-6">
                                         {(latestGen.hashtags || []).map(t => (
-                                            <span key={t} className="inline-block text-xs bg-[rgba(26,26,46,0.06)] text-[var(--charcoal-700)] rounded px-2 py-1 mr-2 margin-bottom-2 mb-2 font-mono">
-                                                #{t}
-                                            </span>
+                                            <span key={t} className="text-xs bg-gray-100 text-gray-500 rounded px-2 py-1 font-mono">#{t}</span>
                                         ))}
                                     </div>
 
                                     <div className="flex gap-2">
-                                        <button className="btn btn-primary btn-sm" onClick={() => handleShare(`${currentCaption}\n\n${(latestGen.hashtags || []).map(t => `#${t}`).join(' ')}`, currentTab)}>
-                                            {currentTab === 'whatsapp' ? 'Post to WhatsApp' : 'Share Now'}
+                                        <button
+                                            className="btn btn-primary btn-sm px-6"
+                                            onClick={() => handleShare(`${currentCaption}\n\n${(latestGen.hashtags || []).map(t => `#${t}`).join(' ')}`, currentTab)}
+                                        >
+                                            {currentTab === 'whatsapp' ? 'Send to WhatsApp' : 'Share Now'}
                                         </button>
-                                        <button className="btn btn-ghost btn-sm" onClick={() => {
-                                            navigator.clipboard.writeText(`${currentCaption}\n\n${(latestGen.hashtags || []).map(t => `#${t}`).join(' ')}`);
-                                            toast.success('Copied to clipboard!');
-                                        }}>
+                                        <button
+                                            className="btn btn-ghost btn-sm"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(`${currentCaption}\n\n${(latestGen.hashtags || []).map(t => `#${t}`).join(' ')}`);
+                                                toast.success('Copied to clipboard!');
+                                            }}
+                                        >
                                             Copy
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* Right side: AI Promo Image Gen */}
-                                <div style={{ width: 320, flexShrink: 0, borderLeft: '1px solid var(--border)', background: 'var(--surface)' }} className="p-6">
-                                    <h2 className="font-serif text-xl border-b-[2px] border-indigo-400 pb-1 inline-block mb-4">Promotional Creative</h2>
-                                    <p className="text-xs text-secondary mb-6">Use DALL-E 3 to generate a styled promotional image using the <strong>{campaign.tone}</strong> tone.</p>
+                                {/* Right: AI Promo Gen */}
+                                <div className="w-full md:w-[300px] lg:w-[340px] p-6 bg-[var(--surface)] flex flex-col justify-center items-center text-center">
+                                    <h3 className="font-serif text-lg mb-4 text-[var(--charcoal)]">Promotional Creative</h3>
 
                                     {latestGen.promoImageUrl ? (
-                                        <div className="rounded-[var(--r-md)] overflow-hidden shadow-md group relative">
+                                        <div className="w-full relative group rounded-lg overflow-hidden shadow-md">
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={latestGen.promoImageUrl} alt="DALL-E 3 Generated Promo" className="w-full h-auto aspect-square object-cover" />
-                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                <button onClick={() => window.open(latestGen.promoImageUrl!, '_blank')} className="btn btn-primary btn-sm rounded-full">Download HQ</button>
+                                            <img src={latestGen.promoImageUrl} alt="Promo" className="w-full aspect-square object-cover" />
+                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-4">
+                                                <button
+                                                    onClick={() => handleDownload(latestGen.promoImageUrl!, `promo-${product.id}.jpg`)}
+                                                    className="btn btn-primary btn-sm rounded-full w-full"
+                                                >
+                                                    <Download size={16} className="mr-2" /> Download HQ
+                                                </button>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="aspect-square bg-[rgba(26,26,46,0.03)] border-2 border-dashed border-[var(--border)] rounded-[var(--r-md)] flex flex-col items-center justify-center p-6 text-center">
+                                        <div className="w-full aspect-square bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center p-6">
                                             <Layers size={32} className="text-[var(--gold)] mb-4" />
-                                            <p className="text-sm text-[var(--charcoal)] font-medium mb-1">No creative generated</p>
-                                            <p className="text-xs text-secondary mb-4">1 API Credit required</p>
+                                            <p className="text-sm font-medium mb-1">No creative yet</p>
+                                            <p className="text-xs text-secondary mb-4">1 Credit required</p>
                                             <button
                                                 onClick={() => handleGenerateImage(product.id, latestGen.id)}
                                                 disabled={generatingImages[latestGen.id]}
-                                                className="btn btn-outline" style={{ border: '1px solid var(--charcoal)', color: 'var(--charcoal)', background: 'transparent' }}
+                                                className="btn btn-outline btn-sm w-full"
                                             >
-                                                {generatingImages[latestGen.id] ? <Loader2 size={16} className="animate-spin inline-block mr-2" /> : null}
-                                                Generate Image
+                                                {generatingImages[latestGen.id] ? <Loader2 size={14} className="animate-spin mr-2" /> : null}
+                                                Generate Now
                                             </button>
                                         </div>
                                     )}

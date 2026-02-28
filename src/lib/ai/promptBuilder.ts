@@ -51,7 +51,16 @@ RESPONSE FORMAT (strict JSON, no markdown, no explanation):
       },
       "hashtags": ["tag1", "tag2", ... (15-20 tags, mix of niche and trending, no # prefix)]
     }
-  ]
+  ],
+  "masterCopy": {
+    "captions": {
+      "instagram": "string (high-level collection summary, lifestyle-focused, mentions the theme)",
+      "facebook": "string (story-driven overview of the whole collection, community-focused)",
+      "tiktok": "string (punchy collection hook, very short)",
+      "whatsapp": "string (conversational, perfect for status/direct message to share the whole collection)"
+    },
+    "hashtags": ["general_tag1", "general_tag2", ... (broad collection-level tags)]
+  }
 }`;
 }
 

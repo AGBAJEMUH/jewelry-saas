@@ -16,6 +16,15 @@ export const GenerationOutputSchema = z.object({
             hashtags: z.array(z.string()),
         })
     ),
+    masterCopy: z.object({
+        captions: z.object({
+            instagram: z.string(),
+            facebook: z.string(),
+            tiktok: z.string(),
+            whatsapp: z.string(),
+        }),
+        hashtags: z.array(z.string()),
+    }),
 });
 
 export type GenerationOutput = z.infer<typeof GenerationOutputSchema>;

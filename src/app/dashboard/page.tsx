@@ -60,27 +60,23 @@ export default function DashboardPage() {
 
     return (
         <div className="animate-fade-in">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10">
                 <div>
-                    <h1 className="font-serif" style={{ fontSize: '2.2rem', marginBottom: 4 }}>Your Campaigns</h1>
-                    <p className="text-secondary">View and manage your generated jewelry marketing assets.</p>
+                    <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-[var(--charcoal)] mb-2">Your Campaigns</h1>
+                    <p className="text-secondary max-w-md">View and manage your generated jewelry marketing assets.</p>
                 </div>
-                <Link href="/dashboard/campaign/new" className="btn btn-primary">
-                    <Plus size={18} /> New Campaign
+                <Link href="/dashboard/campaign/new" className="btn btn-primary px-8">
+                    <Plus size={18} /> <span className="ml-2">New Campaign</span>
                 </Link>
             </div>
 
             {campaigns.length === 0 ? (
-                <div className="card text-center" style={{ padding: '60px 24px' }}>
-                    <div style={{
-                        width: 64, height: 64, borderRadius: '50%', background: 'rgba(201,168,76,0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px',
-                        color: 'var(--gold-dark)',
-                    }}>
+                <div className="card text-center p-12 md:p-20 flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-[var(--gold-50)] flex items-center justify-center text-[var(--gold-dark)] mb-6">
                         <Sparkles size={32} />
                     </div>
-                    <h2 style={{ fontSize: '1.25rem', marginBottom: 8 }}>No campaigns yet</h2>
-                    <p className="text-secondary mb-6 max-w-md mx-auto">
+                    <h2 className="text-2xl font-serif mb-4">No campaigns yet</h2>
+                    <p className="text-secondary mb-8 max-w-md">
                         Upload your jewelry photos to generate AI-crafted captions, hashtags, and promotional images.
                     </p>
                     <Link href="/dashboard/campaign/new" className="btn btn-primary">
@@ -88,46 +84,47 @@ export default function DashboardPage() {
                     </Link>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 }}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
                     {campaigns.map((c) => (
-                        <Link key={c.id} href={`/dashboard/campaign/${c.id}`} style={{ textDecoration: 'none' }}>
-                            <div className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                        <Link key={c.id} href={`/dashboard/campaign/${c.id}`} className="no-underline group">
+                            <div className="card h-full flex flex-col relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-[var(--border)]">
                                 <button
                                     onClick={(e) => handleDelete(c.id, e)}
-                                    style={{
-                                        position: 'absolute', top: 12, right: 12, zIndex: 10,
-                                        width: 32, height: 32, borderRadius: 8, border: 'none',
-                                        background: 'rgba(255,255,255,0.9)', color: 'var(--red)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        cursor: 'pointer', boxShadow: 'var(--shadow-sm)',
-                                        opacity: 0, transition: 'opacity 0.2s'
-                                    }}
-                                    className="delete-btn"
+                                    className="absolute top-4 right-4 z-10 w-10 h-10 rounded-xl bg-white/90 text-[var(--red)] flex items-center justify-center cursor-pointer shadow-sm lg:opacity-0 group-hover:opacity-100 transition-opacity duration-200 border-none"
+                                    title="Delete Campaign"
                                 >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={18} />
                                 </button>
-                                <div style={{ height: 180, background: 'var(--surface-alt)', position: 'relative', overflow: 'hidden' }}>
+
+                                <div className="h-52 bg-[var(--surface-alt)] relative overflow-hidden">
                                     {c.coverImage ? (
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={c.coverImage} alt={c.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={c.coverImage} alt={c.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                     ) : (
-                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+                                        <div className="w-full h-full flex items-center justify-center text-gray-300">
                                             <ImageIcon size={48} />
                                         </div>
                                     )}
-                                    <div style={{ position: 'absolute', bottom: 12, left: 12 }}>
-                                        <span className="badge badge-gold">
+                                    <div className="absolute bottom-4 left-4">
+                                        <span className="badge badge-gold px-3 py-1 text-xs">
                                             {c.tone} Tone
                                         </span>
                                     </div>
                                 </div>
-                                <div className="card-body" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--charcoal)', marginBottom: 4 }}>
-                                        {c.title}
-                                    </h3>
-                                    <div className="flex justify-between items-center text-sm text-secondary mt-auto">
-                                        <span>{c.productCount} Product{c.productCount !== 1 ? 's' : ''}</span>
-                                        <span>{new Date(c.createdAt).toLocaleDateString()}</span>
+
+                                <div className="p-6 flex-1 flex flex-col justify-between">
+                                    <div>
+                                        <h3 className="text-xl font-serif text-[var(--charcoal)] mb-2 group-hover:text-[var(--gold-dark)] transition-colors">
+                                            {c.title}
+                                        </h3>
+                                        <p className="text-sm text-secondary line-clamp-1">{c.theme}</p>
+                                    </div>
+                                    <div className="flex justify-between items-center text-xs text-secondary mt-6 border-t pt-4">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)]"></span>
+                                            <span>{c.productCount} Product{c.productCount !== 1 ? 's' : ''}</span>
+                                        </div>
+                                        <span>{new Date(c.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                     </div>
                                 </div>
                             </div>
@@ -135,9 +132,6 @@ export default function DashboardPage() {
                     ))}
                 </div>
             )}
-            <style>{`
-        .card:hover .delete-btn { opacity: 1 !important; }
-      `}</style>
         </div>
     );
 }
